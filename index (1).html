@@ -1,0 +1,141 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Atendemos para Encantar – Piloto</title>
+  <style>
+    :root{
+      --brand:#0b3c5d; --bg:#f4f6f8; --text:#333; --muted:#5b6b7a;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text)}
+    header{background:var(--brand);color:#fff;padding:28px 16px;text-align:center}
+    header h1{margin:0;font-size:30px;letter-spacing:.2px}
+    header .sub{opacity:.95;margin-top:8px;font-size:18px}
+    header .empresas{margin-top:10px;font-size:14px;opacity:.9}
+    main{max-width:1200px;margin:26px auto;padding:0 16px}
+    .toolbar{display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-bottom:16px}
+    .toolbar .select-wrap{display:flex;gap:8px;align-items:center}
+    select{padding:10px 12px;border:1px solid #cfd8e3;border-radius:8px;background:#fff}
+    .link-copiar{font-size:14px;color:var(--brand);text-decoration:none}
+    .galeria{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:18px}
+    figure.card{margin:0;background:#fff;border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,.08);overflow:hidden;display:flex;flex-direction:column}
+    figure.card img{width:100%;display:block;background:#fff}
+    figure.card figcaption{padding:10px 12px;font-size:14px;color:#444;line-height:1.35;border-top:1px solid #eee;background:#fafafa}
+    .msg{margin:18px 0;padding:14px;border-radius:10px;background:#fff3cd;color:#664d03;border:1px solid #ffecb5}
+    footer{margin:34px 0 24px 0;text-align:center;color:var(--muted);font-size:13px}
+    .hidden{display:none}
+  </style>
+</head>
+<body>
+  <header>
+    <h1 id="titulo">Atendemos para Encantar – <span id="nomeEd"></span></h1>
+    <div class="empresas">JMEF Serviços e Manutenções • Bolconte Facilities • Bio Control • Fênix Jardinagens</div>
+  </header>
+
+  <main>
+    <div class="toolbar">
+      <div class="select-wrap">
+        <label for="edSel">Edifício:</label>
+        <select id="edSel">
+          <option value="cidade-verde">Cidade Verde</option>
+          <option value="nova-natal">Nova Natal</option>
+          <option value="caico">Caicó</option>
+        </select>
+      </div>
+      <a id="linkDireto" class="link-copiar" href="#" target="_blank">Link direto deste edifício</a>
+    </div>
+
+    <div id="msg" class="msg hidden">Nenhuma imagem carregada. Verifique se existem arquivos em <code>edificios/&lt;edifício&gt;/fotos-atuais/</code> com nomes <code>foto1.png</code>, <code>foto2.png</code>, ...</div>
+
+    <div id="galeria" class="galeria"></div>
+
+    <footer>
+      © <span id="ano"></span> – Atendemos para Encantar • Galeria piloto (3 edifícios)
+    </footer>
+  </main>
+
+<script>
+  const nomeVisivel = {
+    'cidade-verde':'Cidade Verde',
+    'nova-natal':'Nova Natal',
+    'caico':'Caicó'
+  };
+
+  // Lista padrão de arquivos que o site tenta carregar.
+  const arquivos = Array.from({length:16}, (_,i)=>`foto${i+1}.png`);
+
+  function getParam(name){
+    const url = new URL(window.location.href);
+    return url.searchParams.get(name);
+  }
+
+  function montar(ed){
+    const slug = nomeVisivel[ed] ? ed : 'cidade-verde';
+    const nome = nomeVisivel[slug];
+
+    document.getElementById('nomeEd').textContent = nome;
+    document.title = `Atendemos para Encantar – ${nome}`;
+
+    const sel = document.getElementById('edSel');
+    sel.value = slug;
+
+    const linkDireto = `${window.location.origin}${window.location.pathname}?ed=${slug}`;
+    const linkA = document.getElementById('linkDireto');
+    linkA.href = linkDireto;
+    linkA.textContent = linkDireto;
+
+    const base = `edificios/${slug}/fotos-atuais/`;
+    const gal = document.getElementById('galeria');
+    gal.innerHTML = '';
+
+    let carregadas = 0;
+
+    arquivos.forEach((nomeArq, idx)=>{
+      const fig = document.createElement('figure');
+      fig.className = 'card';
+      const img = document.createElement('img');
+      img.alt = `${nome} – Foto ${idx+1}`;
+      img.loading = 'lazy';
+      img.src = base + nomeArq;
+      img.onerror = ()=>{ fig.remove(); checarMensagem(); };
+      img.onload = ()=>{ carregadas++; };
+      const cap = document.createElement('figcaption');
+      cap.textContent = `${nome} – Foto ${idx+1}`;
+      fig.appendChild(img);
+      fig.appendChild(cap);
+      gal.appendChild(fig);
+    });
+
+    function checarMensagem(){
+      const visiveis = gal.querySelectorAll('img').length;
+      const msg = document.getElementById('msg');
+      if(visiveis===0){ msg.classList.remove('hidden'); }
+      else { msg.classList.add('hidden'); }
+    }
+
+    // Checagem inicial após pequena espera (para erros carregarem)
+    setTimeout(()=>{
+      const imgs = gal.querySelectorAll('img');
+      let ok = 0; imgs.forEach(i=>{ if(i.complete && i.naturalWidth>0) ok++; });
+      const msg = document.getElementById('msg');
+      if(ok===0) msg.classList.remove('hidden'); else msg.classList.add('hidden');
+    }, 800);
+  }
+
+  // Inicialização
+  document.getElementById('ano').textContent = new Date().getFullYear();
+  const inicial = getParam('ed') || 'cidade-verde';
+  montar(inicial);
+  document.getElementById('edSel').addEventListener('change', (e)=>{
+    const slug = e.target.value;
+    const url = new URL(window.location.href);
+    url.searchParams.set('ed', slug);
+    history.replaceState({}, '', url);
+    montar(slug);
+  });
+</script>
+</body>
+</html>
